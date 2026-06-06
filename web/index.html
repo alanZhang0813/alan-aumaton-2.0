@@ -10,7 +10,10 @@
         href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <!-- chess.js 0.10.3 vendored locally: UMD build that exposes a global `Chess`.
+       (0.13+ is ESM-only and breaks a plain <script> tag with "Unexpected token
+       'export'", freezing the page on "Loading…".) -->
+  <script src="vendor/chess-0.10.3.min.js"></script>
 
   <style>
     body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; }
@@ -106,7 +109,7 @@
       position: 'start',
       onDragStart, onDrop,
       onSnapEnd: () => board.position(game.fen()),
-      pieceTheme: 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png'
+      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
     });
 
     document.getElementById('new').addEventListener('click', newGame);
