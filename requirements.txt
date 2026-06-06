@@ -1,0 +1,7 @@
+torch
+python-chess
+requests
+tqdm
+numpy
+fastapi
+uvicorn
