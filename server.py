@@ -56,6 +56,19 @@ class MoveRequest(BaseModel):
     temperature: float = 0.0
 
 
+@app.get("/")
+def root():
+    """Friendly landing so the root path doesn't 404 (HF pings it)."""
+    return {
+        "service": "alan-aumaton move API",
+        "username": USERNAME,
+        "endpoints": {
+            "GET /health": "liveness + model status",
+            "POST /move": "{fen, temperature?} -> next move",
+        },
+    }
+
+
 @app.get("/health")
 def health():
     return {

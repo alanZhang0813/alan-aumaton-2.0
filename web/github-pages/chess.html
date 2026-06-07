@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Play my chess clone</title>
+
+  <!-- ========================================================================
+       SET THIS to your deployed Hugging Face Space URL (no trailing slash).
+       After you create the Space it looks like:
+         https://<your-username>-<space-name>.hf.space
+       ===================================================================== -->
+  <script>
+    const API_BASE = "https://YOUR-USERNAME-alan-aumaton-chess.hf.space";
+  </script>
+
+  <link rel="stylesheet"
+        href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <!-- Local UMD chess.js (the 0.13+ CDN build is ESM and breaks a plain script tag). -->
+  <script src="chess-0.10.3.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    #board { width: 400px; max-width: 100%; }
+    #status { margin-top: 1rem; min-height: 1.4em; color: #333; }
+    .row { display: flex; gap: .5rem; align-items: center; margin: .5rem 0; }
+    button { padding: .4rem .8rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Play against my chess clone</h2>
+  <p>A neural network trained to imitate my own games. Make a move and it replies as I would.</p>
+
+  <div class="row">
+    <button id="new">New game</button>
+    <label>You play:
+      <select id="side"><option value="w">White</option><option value="b">Black</option></select>
+    </label>
+  </div>
+
+  <div id="board"></div>
+  <div id="status">Your move.</div>
+
+  <script>
+    const game = new Chess();
+    let board = null;
+    let thinking = false;
+
+    const $status = document.getElementById('status');
+    const humanColor = () => document.getElementById('side').value;
+    const setStatus = (msg) => { $status.textContent = msg; };
+
+    function gameOverText() {
+      if (game.in_checkmate()) return 'Checkmate.';
+      if (game.in_draw()) return 'Draw.';
+      if (game.game_over()) return 'Game over.';
+      return '';
+    }
+
+    async function requestBotMove() {
+      if (game.game_over()) { setStatus(gameOverText()); return; }
+      thinking = true;
+      setStatus('My clone is thinking… (first move may take ~20s while the server wakes up)');
+      try {
+        const res = await fetch(API_BASE + '/move', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fen: game.fen(), temperature: 0 })
+        });
+        if (!res.ok) { setStatus('Server error ' + res.status + '. Try again in a moment.'); return; }
+        const data = await res.json();
+        if (!data.move) { setStatus(gameOverText() || 'No move available.'); return; }
+        game.move({
+          from: data.move.slice(0, 2),
+          to: data.move.slice(2, 4),
+          promotion: data.move.slice(4, 5) || 'q'
+        });
+        board.position(game.fen());
+        setStatus(game.game_over() ? gameOverText()
+                                   : 'I played ' + data.san + '. Your move.');
+      } catch (e) {
+        setStatus('Could not reach the server. It may be starting up — try again shortly.');
+      } finally {
+        thinking = false;
+      }
+    }
+
+    function onDrop(source, target) {
+      if (thinking) return 'snapback';
+      const move = game.move({ from: source, to: target, promotion: 'q' });
+      if (move === null) return 'snapback';
+      board.position(game.fen());
+      window.setTimeout(requestBotMove, 250);
+    }
+
+    function onDragStart(source, piece) {
+      if (game.game_over() || thinking) return false;
+      return piece[0] === humanColor();
+    }
+
+    function newGame() {
+      game.reset();
+      board.orientation(humanColor() === 'w' ? 'white' : 'black');
+      board.position('start');
+      if (humanColor() === 'b') requestBotMove();
+      else setStatus('Your move.');
+    }
+
+    board = Chessboard('board', {
+      draggable: true,
+      position: 'start',
+      onDragStart, onDrop,
+      onSnapEnd: () => board.position(game.fen()),
+      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+    });
+
+    document.getElementById('new').addEventListener('click', newGame);
+    document.getElementById('side').addEventListener('change', newGame);
+  </script>
+</body>
+</html>

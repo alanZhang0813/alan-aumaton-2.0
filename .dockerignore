@@ -1,0 +1,14 @@
+.venv/
+data/
+web/
+deploy/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+README.md
+main.py
+chesscom.py
+dataset.py
+train.py
+uci.py
